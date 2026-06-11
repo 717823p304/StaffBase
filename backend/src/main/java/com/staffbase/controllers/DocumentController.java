@@ -10,6 +10,7 @@ import com.staffbase.repositories.mongo.DocumentAccessLogRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -64,8 +65,11 @@ public class DocumentController {
         }
 
         try {
-            // Clean filename
+            // Clean filename and prevent path traversal
             String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+            if (originalFileName.contains("..") || originalFileName.contains("/") || originalFileName.contains("\\")) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid filename"));
+            }
             String extension = "";
             int extIdx = originalFileName.lastIndexOf('.');
             if (extIdx >= 0) {
@@ -76,7 +80,10 @@ public class DocumentController {
 
             // Create unique saved file name
             String savedFileName = System.currentTimeMillis() + "_" + originalFileName;
-            Path targetLocation = Paths.get(uploadDir).toAbsolutePath().resolve(savedFileName);
+            Path targetLocation = Paths.get(uploadDir).toAbsolutePath().resolve(savedFileName).normalize();
+            if (!targetLocation.startsWith(Paths.get(uploadDir).toAbsolutePath())) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid file path"));
+            }
             
             // Write binary content to disk
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
@@ -116,6 +123,7 @@ public class DocumentController {
     }
 
     @PutMapping("/{docId}/verify")
+    @PreAuthorize("hasAnyRole('Admin', 'HR')")
     public ResponseEntity<?> verifyDocument(
             @PathVariable String docId,
             @RequestBody java.util.Map<String, Boolean> payload) {
@@ -196,7 +204,13 @@ public class DocumentController {
             String filePathStr = doc.getFilePath();
             // Extrapolate filename from "/api/uploads/filename" or similar
             String filename = filePathStr.substring(filePathStr.lastIndexOf('/') + 1);
-            Path filePath = Paths.get(uploadDir).toAbsolutePath().resolve(filename);
+            if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid file path"));
+            }
+            Path filePath = Paths.get(uploadDir).toAbsolutePath().resolve(filename).normalize();
+            if (!filePath.startsWith(Paths.get(uploadDir).toAbsolutePath())) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid file path"));
+            }
             
             if (!Files.exists(filePath)) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -220,6 +234,7 @@ public class DocumentController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('Admin', 'HR')")
     public ResponseEntity<?> deleteDocument(@PathVariable String id) {
         Optional<EmployeeDocument> docOpt = documentRepository.findById(id);
         if (docOpt.isEmpty()) {
