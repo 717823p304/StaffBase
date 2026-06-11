@@ -56,7 +56,7 @@ const Sidebar = () => {
       </div>
 
       <div className="sidebar-role-container">
-        <span className={`badge badge-${activeRole === 'Admin' ? 'danger' : activeRole === 'HR Manager' ? 'warning' : 'info'}`}>
+        <span className={`badge badge-${activeRole === 'Admin' ? 'danger' : activeRole === 'HR' ? 'warning' : 'info'}`}>
           {activeRole} Console
         </span>
       </div>
@@ -74,8 +74,8 @@ const Sidebar = () => {
           </a>
         ))}
 
-        {/* HR Manager or Admin links */}
-        {(activeRole === 'HR Manager' || activeRole === 'Admin') && (
+        {/* HR or Admin links */}
+        {(activeRole === 'HR' || activeRole === 'Admin') && (
           <>
             <div className="sidebar-section-label">HR Console</div>
             {hrLinks.map(link => (

@@ -185,7 +185,7 @@ const AddEmployee = () => {
                     onChange={(e) => setRole(e.target.value)}
                   >
                     <option value="Employee">Employee Access</option>
-                    <option value="HR Manager">HR Manager Console</option>
+                    <option value="HR">HR Console</option>
                     <option value="Admin">System Administrator</option>
                   </select>
                 </div>

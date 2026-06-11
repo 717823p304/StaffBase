@@ -1,21 +1,44 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
+import { api } from '../../services/api';
 import { UploadCloud, FileText, AlertTriangle, CheckCircle2, ShieldCheck, Download, Trash2, Calendar } from 'lucide-react';
 
 const Documents = () => {
   const { currentUser, employees, uploadEmployeeDocument, addToast } = useContext(AppContext);
+  const fileInputRef = useRef(null);
 
   // Grab the fresh copy of employee data from context to reflect newly uploaded documents
   const emp = employees.find(e => e.id === currentUser.id) || currentUser;
 
+  const [documentsList, setDocumentsList] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
   const [docName, setDocName] = useState('');
   const [docType, setDocType] = useState('Passport Copy');
   const [fileFormat, setFileFormat] = useState('PDF');
   const [expiryDate, setExpiryDate] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
-  // Check if any documents are expiring soon (using simulated date 2026-05-20)
-  const expiringDocs = (emp.documents || []).filter(doc => {
+  // Fetch documents on load
+  const fetchDocs = async () => {
+    try {
+      const res = await api.get(`/documents/my-documents?employeeId=${emp.id}`);
+      if (res.success) {
+        setDocumentsList(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load documents', err);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDocs();
+  }, [emp.id]);
+
+  // Check if any documents are expiring soon
+  const expiringDocs = documentsList.filter(doc => {
     if (doc.expiryDate && doc.expiryDate !== 'N/A') {
       const exp = new Date(doc.expiryDate);
       const today = new Date('2026-05-20');
@@ -26,23 +49,84 @@ const Documents = () => {
     return false;
   });
 
-  const handleUploadSubmit = (e) => {
+  const handleFileChange = (file) => {
+    if (file) {
+      setSelectedFile(file);
+      // Auto-fill file name if empty
+      setDocName(file.name.split('.')[0]);
+      
+      // Auto-fill format extension
+      const ext = file.name.split('.').pop().toUpperCase();
+      if (ext === 'PDF') setFileFormat('PDF');
+      else if (['JPG', 'JPEG', 'PNG'].includes(ext)) setFileFormat('Image');
+      else if (['DOC', 'DOCX'].includes(ext)) setFileFormat('Word');
+    }
+  };
+
+  const handleUploadSubmit = async (e) => {
     e.preventDefault();
     if (!docName.trim()) {
       addToast('Please specify a document name.', 'warning');
       return;
     }
+    if (!selectedFile) {
+      addToast('Please select a document file to upload.', 'warning');
+      return;
+    }
     
-    uploadEmployeeDocument(
-      emp.id,
+    const success = await uploadEmployeeDocument(
+      emp.dbId || emp.id,
       `${docType} - ${docName.trim()}`,
       fileFormat,
-      expiryDate ? expiryDate : 'N/A'
+      expiryDate ? expiryDate : 'N/A',
+      selectedFile
     );
 
-    // Reset inputs
-    setDocName('');
-    setExpiryDate('');
+    if (success) {
+      // Reset inputs
+      setDocName('');
+      setExpiryDate('');
+      setSelectedFile(null);
+      fetchDocs(); // reload files
+    }
+  };
+
+  const handleDownload = async (doc) => {
+    try {
+      const accessToken = localStorage.getItem('staffbase_access_token');
+      const response = await fetch(`http://localhost:5000/api/documents/${doc.id}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${doc.name}.${doc.type.toLowerCase()}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      addToast(`Downloaded: ${doc.name}`, 'success');
+    } catch (err) {
+      addToast('Failed to download document: ' + err.message, 'danger');
+    }
+  };
+
+  const handleDelete = async (docId) => {
+    if (window.confirm('Are you sure you want to delete this document from the vault?')) {
+      try {
+        const res = await api.delete(`/documents/${docId}`);
+        if (res.success) {
+          addToast('Document deleted successfully.', 'success');
+          setDocumentsList(prev => prev.filter(d => d.id !== docId));
+        }
+      } catch (err) {
+        addToast(err.message || 'Failed to delete document', 'danger');
+      }
+    }
   };
 
   const handleDrag = (e) => {
@@ -60,10 +144,13 @@ const Documents = () => {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      setDocName(droppedFile.name.split('.')[0]);
-      addToast(`Detected file "${droppedFile.name}"! Now click Submit.`, 'info');
+      handleFileChange(e.dataTransfer.files[0]);
+      addToast(`Detected file "${e.dataTransfer.files[0].name}"! Now click Submit.`, 'info');
     }
+  };
+
+  const onButtonClick = () => {
+    fileInputRef.current.click();
   };
 
   return (
@@ -105,11 +192,19 @@ const Documents = () => {
                 onDragOver={handleDrag}
                 onDragLeave={handleDrag}
                 onDrop={handleDrop}
+                onClick={onButtonClick}
               >
-                <UploadCloud size={36} style={{ color: dragActive ? 'var(--primary)' : 'var(--text-muted)' }} />
-                <h3>Simulated Drag & Drop Files</h3>
-                <p>Drag files here or click to browse corporate folders.</p>
-                <span style={fileSupportLabel}>Supports PDF, DOCX, PNG up to 15MB</span>
+                <input 
+                  type="file"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFileChange(e.target.files[0])}
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                />
+                <UploadCloud size={36} style={{ color: selectedFile || dragActive ? 'var(--primary)' : 'var(--text-muted)' }} />
+                <h3>{selectedFile ? 'File Selected' : 'Choose Document File'}</h3>
+                <p>{selectedFile ? `"${selectedFile.name}"` : 'Drag files here or click to browse corporate folders.'}</p>
+                <span style={fileSupportLabel}>Supports PDF, DOCX, PNG, JPG up to 5MB</span>
               </div>
 
               <div style={formGrid}>
@@ -124,7 +219,7 @@ const Documents = () => {
                     <option value="Driver License">Driver License Copy</option>
                     <option value="Work Permit Visa">Work Permit Visa</option>
                     <option value="W-4 Tax Form">W-4 Tax Form</option>
-                    <option value="Offer Letter">Employment Offer Letter</option>
+                    <option value="Offer Letter">Offer Letter</option>
                     <option value="NDA Agreement">NDA Agreement</option>
                     <option value="Certification Page">Educational Certifications</option>
                   </select>
@@ -179,10 +274,12 @@ const Documents = () => {
         <div className="glass-card" style={panelCardStyle}>
           <div style={panelHeaderStyle}>
             <h2 style={panelTitleStyle}>Your Secure Documents Vault</h2>
-            <span className="badge badge-info">{emp.id} Files</span>
+            <span className="badge badge-info">{documentsList.length} Files</span>
           </div>
           <div style={{ padding: '1.25rem' }}>
-            {(emp.documents || []).length === 0 ? (
+            {loadingDocs ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading documents...</div>
+            ) : documentsList.length === 0 ? (
               <div style={emptyVaultStyle}>
                 <FileText size={48} style={{ color: 'var(--text-muted)' }} />
                 <h3>Vault Empty</h3>
@@ -190,7 +287,7 @@ const Documents = () => {
               </div>
             ) : (
               <div style={vaultFileList}>
-                {(emp.documents || []).map((doc) => (
+                {documentsList.map((doc) => (
                   <div key={doc.id} style={docCardStyle} className="glass-card">
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                       <div style={docIconWrapper}>
@@ -215,11 +312,18 @@ const Documents = () => {
                         </span>
                         <div style={{ display: 'flex', gap: '4px' }}>
                           <button
-                            onClick={() => addToast(`Simulated download: "${doc.name}.${doc.type.toLowerCase()}"`, 'success')}
+                            onClick={() => handleDownload(doc)}
                             style={actionBtnStyle}
                             title="Download Copy"
                           >
                             <Download size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(doc.id)}
+                            style={{ ...actionBtnStyle, color: 'var(--danger)' }}
+                            title="Delete Copy"
+                          >
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </div>

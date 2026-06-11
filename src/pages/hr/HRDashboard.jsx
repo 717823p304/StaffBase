@@ -7,6 +7,7 @@ const HRDashboard = () => {
     employees, 
     notifications,
     registrationRequests,
+    requestHistory,
     approveRegistrationRequest,
     rejectRegistrationRequest
   } = useContext(AppContext);
@@ -170,6 +171,60 @@ const HRDashboard = () => {
         </div>
 
       </div>
+
+      {/* Requests History Log Panel */}
+      <div className="glass-card" style={{ ...panelCardStyle, marginTop: '0.5rem' }}>
+        <div style={panelHeaderStyle}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <Sliders size={18} style={{ color: 'var(--secondary)' }} />
+            <h3 style={panelTitleStyle}>Profile Request Audit History ({requestHistory?.length || 0})</h3>
+          </div>
+        </div>
+        <div style={{ padding: '1.25rem', overflowX: 'auto' }}>
+          {!requestHistory || requestHistory.length === 0 ? (
+            <p style={emptyTextStyle}>No historical profile requests recorded.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Name</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Email</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Dept & Title</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Requested Role</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Timestamp</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600, textAlign: 'center' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requestHistory.map((req) => (
+                  <tr key={req.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '12px', fontWeight: 700 }}>{req.name}</td>
+                    <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{req.email}</td>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ fontWeight: 600 }}>{req.designation}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{req.department}</div>
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <span className={`badge badge-${req.role === 'Admin' ? 'danger' : req.role === 'HR' ? 'warning' : 'info'}`}>
+                        {req.role}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {new Date(req.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <span className={`badge badge-${req.status === 'APPROVED' ? 'success' : req.status === 'PENDING' ? 'warning' : 'danger'}`} style={{ minWidth: '80px', display: 'inline-block' }}>
+                        {req.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 };

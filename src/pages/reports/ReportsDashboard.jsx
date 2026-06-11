@@ -54,8 +54,52 @@ const ReportsDashboard = () => {
     return { text: 'On Track', color: 'var(--secondary)' };
   };
 
-  const handleExport = (reportType) => {
-    addToast(`Exporting ${reportType} report as Excel CSV...`, 'success');
+  const handleExportExcel = async () => {
+    try {
+      const accessToken = localStorage.getItem('staffbase_access_token');
+      const response = await fetch('http://localhost:5000/api/reports/export/excel', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      if (!response.ok) throw new Error('Export failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'StaffBase_Directory_Database.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      addToast('CSV export downloaded successfully.', 'success');
+    } catch (err) {
+      addToast('Failed to export CSV: ' + err.message, 'danger');
+    }
+  };
+
+  const handleExportPdf = async () => {
+    try {
+      const accessToken = localStorage.getItem('staffbase_access_token');
+      const response = await fetch('http://localhost:5000/api/reports/export/pdf', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      if (!response.ok) throw new Error('Export failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'StaffBase_Directory_Report.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      addToast('PDF report downloaded successfully.', 'success');
+    } catch (err) {
+      addToast('Failed to export PDF: ' + err.message, 'danger');
+    }
   };
 
   return (
@@ -66,10 +110,14 @@ const ReportsDashboard = () => {
           <h1 style={titleStyle}>Operational Reports & Analytics</h1>
           <p style={subtitleStyle}>Simplified key performance indicators: gender diversity distribution, staff headcount, and operational efficiencies.</p>
         </div>
-        <div>
-          <button onClick={() => handleExport('StaffBase Roster & Performance')} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={handleExportExcel} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Download size={14} />
             <span>Export Roster CSV</span>
+          </button>
+          <button onClick={handleExportPdf} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Download size={14} />
+            <span>Export PDF Report</span>
           </button>
         </div>
       </div>

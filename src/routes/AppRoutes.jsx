@@ -152,21 +152,21 @@ const AppRoutes = () => {
     // --- HR Console Routes ---
     if (fullPath === '/hr/dashboard') {
       return (
-        <RoleRoute allowedRoles={['Admin', 'HR Manager']}>
+        <RoleRoute allowedRoles={['Admin', 'HR']}>
           <HRDashboard />
         </RoleRoute>
       );
     }
     if (fullPath === '/hr/add-employee') {
       return (
-        <RoleRoute allowedRoles={['Admin', 'HR Manager']}>
+        <RoleRoute allowedRoles={['Admin', 'HR']}>
           <AddEmployee />
         </RoleRoute>
       );
     }
     if (fullPath === '/hr/onboarding') {
       return (
-        <RoleRoute allowedRoles={['Admin', 'HR Manager']}>
+        <RoleRoute allowedRoles={['Admin', 'HR']}>
           <Onboarding />
         </RoleRoute>
       );
@@ -198,7 +198,7 @@ const AppRoutes = () => {
     // --- Reports Console Routes ---
     if (fullPath === '/reports') {
       return (
-        <RoleRoute allowedRoles={['Admin', 'HR Manager']}>
+        <RoleRoute allowedRoles={['Admin', 'HR']}>
           <ReportsDashboard />
         </RoleRoute>
       );

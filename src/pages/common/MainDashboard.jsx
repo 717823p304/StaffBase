@@ -1,5 +1,6 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
+import { api } from '../../services/api';
 import {
   Users,
   FolderSync,
@@ -16,36 +17,74 @@ const MainDashboard = () => {
     currentUser,
     activeRole,
     employees,
-    departments,
     activityLogs,
-    notifications,
-    verifyEmployeeDocument
+    verifyEmployeeDocument,
+    addToast
   } = useContext(AppContext);
 
-  // --- Aggregate Stats for HR/Admin Mode ---
-  const activeCount = employees.filter(e => e.status === 'Active').length;
-  const probationCount = employees.filter(e => e.status === 'On Probation').length;
-  const leaveCount = employees.filter(e => e.status === 'On Leave').length;
-  
-  // Find all pending documents across the whole organization
-  const pendingDocs = employees.flatMap(emp =>
-    (emp.documents || [])
-      .filter(doc => doc.status === 'Pending')
-      .map(doc => ({ ...doc, empName: emp.name, empId: emp.id }))
-  );
+  const [dashboardSummary, setDashboardSummary] = useState(null);
+  const [pendingDocsList, setPendingDocsList] = useState([]);
+  const [deptStatsList, setDeptStatsList] = useState([]);
+  const [empDocsCount, setEmpDocsCount] = useState({ total: 0, verified: 0 });
+  const [loading, setLoading] = useState(true);
 
-  // Compute department statistics
-  const deptStats = departments.map(dept => {
-    const count = employees.filter(e => e.department === dept.name).length;
-    return { name: dept.name, count, percent: employees.length > 0 ? (count / employees.length) * 100 : 0 };
-  });
+  const loadDashboardData = async () => {
+    if (!currentUser) return;
+    try {
+      if (activeRole === 'Employee') {
+        const res = await api.get(`/documents/my-documents?employeeId=${currentUser.id}`);
+        if (res.success) {
+          const verified = res.data.filter(d => d.status === 'Verified').length;
+          setEmpDocsCount({ total: res.data.length, verified });
+        }
+      } else {
+        // HR / Admin Console
+        const summaryRes = await api.get('/admin/dashboard/summary');
+        if (summaryRes.success) {
+          setDashboardSummary(summaryRes.data);
+        }
+        const pendingRes = await api.get('/admin/documents/pending');
+        if (pendingRes.success) {
+          setPendingDocsList(pendingRes.data);
+        }
+        const deptsRes = await api.get('/admin/dashboard/departments');
+        if (deptsRes.success) {
+          setDeptStatsList(deptsRes.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard statistics', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [activeRole, currentUser]);
+
+  const handleVerify = async (empId, docId, approve) => {
+    const success = await verifyEmployeeDocument(empId, docId, approve);
+    if (success) {
+      // Reload lists
+      try {
+        const pendingRes = await api.get('/admin/documents/pending');
+        if (pendingRes.success) {
+          setPendingDocsList(pendingRes.data);
+        }
+        const summaryRes = await api.get('/admin/dashboard/summary');
+        if (summaryRes.success) {
+          setDashboardSummary(summaryRes.data);
+        }
+      } catch (e) {}
+    }
+  };
 
   // Render Employee Mode Dashboard
   const renderEmployeeDashboard = () => {
-    // Find matching employee details
     const empDetails = employees.find(e => e.id === currentUser.id) || currentUser;
-    const verifiedDocsCount = (empDetails.documents || []).filter(d => d.status === 'Verified').length;
-    const totalDocsCount = (empDetails.documents || []).length;
+    const verifiedDocsCount = empDocsCount.verified;
+    const totalDocsCount = empDocsCount.total;
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }} className="animate-fade-in">
@@ -67,9 +106,12 @@ const MainDashboard = () => {
               fontSize: '1.75rem',
               backgroundColor: empDetails.bgColor || 'var(--primary)',
               border: '2px solid var(--border-color)',
-              color: '#ffffff'
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}>
-              {empDetails.name.split(' ').map(n => n[0]).join('')}
+              {empDetails.name ? empDetails.name.split(' ').map(n => n[0]).join('') : 'U'}
             </div>
             <div>
               <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--primary)', letterSpacing: '1px' }}>
@@ -191,6 +233,9 @@ const MainDashboard = () => {
                     </div>
                   </div>
                 ))}
+                {(empDetails.timeline || []).length === 0 && (
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem' }}>No milestones registered.</p>
+                )}
               </div>
             </div>
           </div>
@@ -202,6 +247,16 @@ const MainDashboard = () => {
 
   // Render HR / Admin Console Dashboard
   const renderHRDashboard = () => {
+    const totalStaff = dashboardSummary?.totalEmployees || 0;
+    const activeStaff = dashboardSummary?.activeEmployees || 0;
+    const probationStaff = dashboardSummary?.employeesOnProbation || 0;
+    const pendingDocumentsCount = dashboardSummary?.pendingDocuments || 0;
+
+    const deptStats = deptStatsList.map(dept => {
+      const total = totalStaff || 1;
+      return { name: dept.name, count: dept.value, percent: (dept.value / total) * 100 };
+    });
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }} className="animate-fade-in">
         
@@ -232,8 +287,8 @@ const MainDashboard = () => {
               </div>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <h2 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{employees.length}</h2>
-              <span className="badge badge-success" style={{ fontSize: '0.65rem' }}><TrendingUp size={10} style={{ marginRight: '3px' }} /> +12.3%</span>
+              <h2 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{totalStaff}</h2>
+              <span className="badge badge-success" style={{ fontSize: '0.65rem' }}><TrendingUp size={10} style={{ marginRight: '3px' }} /> Active</span>
             </div>
           </div>
 
@@ -245,8 +300,8 @@ const MainDashboard = () => {
               </div>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <h2 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{activeCount}</h2>
-              <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{leaveCount} on leave</span>
+              <h2 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{activeStaff}</h2>
+              <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Clear in directory</span>
             </div>
           </div>
 
@@ -258,8 +313,8 @@ const MainDashboard = () => {
               </div>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <h2 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{probationCount}</h2>
-              <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>Inspections</span>
+              <h2 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 800 }}>{probationStaff}</h2>
+              <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>Inductions</span>
             </div>
           </div>
 
@@ -271,11 +326,11 @@ const MainDashboard = () => {
               </div>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <h2 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 800, color: pendingDocs.length > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>
-                {pendingDocs.length}
+              <h2 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', fontWeight: 800, color: pendingDocumentsCount > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>
+                {pendingDocumentsCount}
               </h2>
-              <span className={`badge badge-${pendingDocs.length > 0 ? 'danger' : 'success'}`} style={{ fontSize: '0.65rem' }}>
-                {pendingDocs.length > 0 ? 'Clearance Needed' : 'Fully Clear'}
+              <span className={`badge badge-${pendingDocumentsCount > 0 ? 'danger' : 'success'}`} style={{ fontSize: '0.65rem' }}>
+                {pendingDocumentsCount > 0 ? 'Clearance Needed' : 'Fully Clear'}
               </span>
             </div>
           </div>
@@ -299,18 +354,18 @@ const MainDashboard = () => {
                 alignItems: 'center'
               }}>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Pending Document Approvals</h3>
-                <span className={`badge badge-${pendingDocs.length > 0 ? 'warning' : 'success'}`}>
-                  {pendingDocs.length} Actionable
+                <span className={`badge badge-${pendingDocsList.length > 0 ? 'warning' : 'success'}`}>
+                  {pendingDocsList.length} Actionable
                 </span>
               </div>
               <div style={{ padding: '1.5rem' }}>
-                {pendingDocs.length === 0 ? (
+                {pendingDocsList.length === 0 ? (
                   <p style={{ padding: '2rem 1rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                     All employee files are fully verified and up-to-date.
                   </p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {pendingDocs.slice(0, 3).map((doc) => (
+                    {pendingDocsList.slice(0, 3).map((doc) => (
                       <div key={doc.id} style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -320,22 +375,22 @@ const MainDashboard = () => {
                         border: '1px solid var(--border-color)',
                         borderRadius: '8px'
                       }}>
-                        <div>
+                        <div style={{ textAlign: 'left' }}>
                           <h4 style={{ fontSize: '0.82rem', fontWeight: 700 }}>{doc.name}</h4>
                           <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                            Uploaded by <strong>{doc.empName}</strong> ({doc.empId})
+                            Uploaded by <strong>{doc.employeeName}</strong> ({doc.employeeId})
                           </p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
-                            onClick={() => verifyEmployeeDocument(doc.empId, doc.id, false)}
+                            onClick={() => handleVerify(doc.employeeId, doc.id, false)}
                             className="btn btn-danger"
                             style={{ padding: '4px 10px', fontSize: '0.7rem', minHeight: '30px' }}
                           >
                             Reject
                           </button>
                           <button
-                            onClick={() => verifyEmployeeDocument(doc.empId, doc.id, true)}
+                            onClick={() => handleVerify(doc.employeeId, doc.id, true)}
                             className="btn btn-primary"
                             style={{ padding: '4px 10px', fontSize: '0.7rem', minHeight: '30px' }}
                           >
@@ -365,7 +420,7 @@ const MainDashboard = () => {
                 {deptStats.map((dept, idx) => (
                   <div key={idx}>
                     <div style={{ display: 'flex', justifyContext: 'space-between', fontSize: '0.82rem', fontWeight: '700', marginBottom: '6px' }}>
-                      <span style={{ marginRight: 'auto' }}>{dept.name}</span>
+                      <span style={{ marginRight: 'auto', textAlign: 'left' }}>{dept.name}</span>
                       <span style={{ color: 'var(--primary)' }}>{dept.count} Staff ({Math.round(dept.percent)}%)</span>
                     </div>
                     <div style={{ width: '100%', height: '6px', background: 'rgba(0,0,0,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
@@ -377,6 +432,9 @@ const MainDashboard = () => {
                     </div>
                   </div>
                 ))}
+                {deptStats.length === 0 && (
+                  <p style={{ padding: '1rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>No departments registered.</p>
+                )}
               </div>
             </div>
 
@@ -402,7 +460,8 @@ const MainDashboard = () => {
                   {activityLogs.slice(0, 5).map((log) => (
                     <div key={log.id} style={{
                       paddingBottom: '12px',
-                      borderBottom: '1px solid var(--border-color)'
+                      borderBottom: '1px solid var(--border-color)',
+                      textAlign: 'left'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: '700' }}>
                         <span style={{ color: 'var(--primary)' }}>{log.operator}</span>
@@ -418,6 +477,9 @@ const MainDashboard = () => {
                       </p>
                     </div>
                   ))}
+                  {activityLogs.length === 0 && (
+                    <p style={{ padding: '1rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>No recent activity logs.</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -430,7 +492,11 @@ const MainDashboard = () => {
     );
   };
 
-  return activeRole === 'Employee' ? renderEmployeeDashboard() : renderHRDashboard();
+  return loading ? (
+    <div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+      Loading dashboard workspace...
+    </div>
+  ) : activeRole === 'Employee' ? renderEmployeeDashboard() : renderHRDashboard();
 };
 
 export default MainDashboard;

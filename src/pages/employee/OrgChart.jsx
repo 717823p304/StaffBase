@@ -1,24 +1,45 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
+import { api } from '../../services/api';
 import { Network, ArrowRight, GitFork } from 'lucide-react';
 
 const OrgChart = () => {
   const { employees } = useContext(AppContext);
+  const [hierarchy, setHierarchy] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Tracing corporate reporting structures statically or based on mock records
-  // Let's create a beautiful structured tree nodes layout.
-  // Sarah Jenkins (Director / Level 1)
-  //   - Michael Chen (HR / Level 2)
-  //       - Robert Vance (Junior / Level 3)
-  //   - Amanda Ross (Design / Level 2)
-  //       - John Doe (Senior Dev / Level 3)
-  //   - Elena Rostova (Finance / Level 2)
-  //   - David Sterling (Marketing / Level 2)
-  //   - Liam Neeson (Security / Level 2)
+  useEffect(() => {
+    const fetchOrgChart = async () => {
+      try {
+        const res = await api.get('/org-chart/hierarchy');
+        if (res.success) {
+          setHierarchy(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load org chart hierarchy', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrgChart();
+  }, []);
 
-  const level1 = employees.find(e => e.id === 'EMP-101'); // Sarah Jenkins
-  const level2 = employees.filter(e => ['EMP-102', 'EMP-104', 'EMP-106', 'EMP-107', 'EMP-108'].includes(e.id));
-  const level3 = employees.filter(e => ['EMP-103', 'EMP-105'].includes(e.id));
+  // Grouping logic:
+  // Root level: employees that have subordinates but do not have a manager listed in hierarchy
+  const employeeIdsWithManager = new Set(hierarchy.map(h => h.employeeId));
+  const level1 = employees.filter(e => !employeeIdsWithManager.has(e.id));
+  const rootEmployees = level1.length > 0 ? level1 : employees.filter(e => e.id === 'EMP-101');
+  const rootIds = new Set(rootEmployees.map(r => r.id));
+
+  // Level 2: managed by a root employee
+  const level2Relations = hierarchy.filter(h => rootIds.has(h.managerId));
+  const level2Ids = new Set(level2Relations.map(h => h.employeeId));
+  const level2 = employees.filter(e => level2Ids.has(e.id));
+
+  // Level 3: managed by a Level 2 employee
+  const level3Relations = hierarchy.filter(h => level2Ids.has(h.managerId));
+  const level3Ids = new Set(level3Relations.map(h => h.employeeId));
+  const level3 = employees.filter(e => level3Ids.has(e.id));
 
   const renderNode = (emp) => {
     if (!emp) return null;
@@ -52,53 +73,59 @@ const OrgChart = () => {
       </div>
 
       {/* Visual Chart Canvas */}
-      <div className="glass-card" style={canvasStyle}>
-        
-        {/* Level 1: Executive Leader */}
-        <div style={tierContainer}>
-          <div style={tierLabelStyle}>Executive Directorate</div>
-          <div style={nodesRow}>
-            {renderNode(level1)}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading reporting hierarchy...</div>
+      ) : (
+        <div className="glass-card" style={canvasStyle}>
+          
+          {/* Level 1: Executive Leader */}
+          <div style={tierContainer}>
+            <div style={tierLabelStyle}>Executive Directorate</div>
+            <div style={nodesRow}>
+              {rootEmployees.map(emp => renderNode(emp))}
+            </div>
           </div>
-        </div>
 
-        {/* Vertical Connector Line 1 */}
-        <div style={verticalConnectorLine}></div>
+          {/* Vertical Connector Line 1 */}
+          {level2.length > 0 && <div style={verticalConnectorLine}></div>}
 
-        {/* Level 2: Management & Leads */}
-        <div style={{ ...tierContainer, background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.02)', borderRadius: '12px', padding: '1.5rem 1rem' }}>
-          <div style={tierLabelStyle}>Department Management & Leads</div>
-          <div style={nodesRowWrap}>
-            {level2.map(emp => (
-              <div key={emp.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {renderNode(emp)}
-                {/* Connector pointing to subordinates */}
-                {emp.id === 'EMP-102' && <div style={subConnectorLine}></div>}
-                {emp.id === 'EMP-104' && <div style={subConnectorLine}></div>}
+          {/* Level 2: Management & Leads */}
+          {level2.length > 0 && (
+            <div style={{ ...tierContainer, background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.02)', borderRadius: '12px', padding: '1.5rem 1rem' }}>
+              <div style={tierLabelStyle}>Department Management & Leads</div>
+              <div style={nodesRowWrap}>
+                {level2.map(emp => (
+                  <div key={emp.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    {renderNode(emp)}
+                    {/* Connector pointing to subordinates */}
+                    {hierarchy.some(h => h.managerId === emp.id) && <div style={subConnectorLine}></div>}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Level 3: Staff Core */}
-        <div style={{ ...tierContainer, marginTop: '1.5rem' }}>
-          <div style={tierLabelStyle}>Core Team & Consultants</div>
-          <div style={level3RowStyle}>
-            {/* Under Michael Chen (EMP-102) */}
-            <div style={subGroupColumn}>
-              <span style={reportIndicator}>Reporting to Michael Chen:</span>
-              {renderNode(employees.find(e => e.id === 'EMP-105'))}
             </div>
+          )}
 
-            {/* Under Amanda Ross (EMP-104) */}
-            <div style={subGroupColumn}>
-              <span style={reportIndicator}>Reporting to Amanda Ross:</span>
-              {renderNode(employees.find(e => e.id === 'EMP-103'))}
+          {/* Level 3: Staff Core */}
+          {level3.length > 0 && (
+            <div style={{ ...tierContainer, marginTop: '1.5rem' }}>
+              <div style={tierLabelStyle}>Core Team & Consultants</div>
+              <div style={level3RowStyle}>
+                {level2.map(mgr => {
+                  const subs = level3.filter(emp => hierarchy.some(h => h.employeeId === emp.id && h.managerId === mgr.id));
+                  if (subs.length === 0) return null;
+                  return (
+                    <div key={mgr.id} style={subGroupColumn}>
+                      <span style={reportIndicator}>Reporting to {mgr.name}:</span>
+                      {subs.map(sub => renderNode(sub))}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </div>
+          )}
 
-      </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -156,7 +183,8 @@ const tierLabelStyle = {
 const nodesRow = {
   display: 'flex',
   justifyContent: 'center',
-  width: '100%'
+  width: '100%',
+  gap: '10px'
 };
 
 const nodesRowWrap = {

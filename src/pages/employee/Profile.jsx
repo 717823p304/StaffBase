@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../../context/AppContext';
+import { api } from '../../services/api';
 import {
   User,
   Clock,
@@ -29,7 +30,7 @@ const Profile = ({ id, activeTab = 'about' }) => {
   } = useContext(AppContext);
 
   // If no ID is passed, default to viewing current logged-in user
-  const targetId = id || currentUser.id;
+  const targetId = id || (currentUser ? currentUser.id : null);
   const emp = employees.find(e => e.id === targetId);
 
   if (!emp) {
@@ -44,7 +45,7 @@ const Profile = ({ id, activeTab = 'about' }) => {
 
   // Authorizations
   const isSelf = currentUser.id === emp.id;
-  const hasAccessToPrivateDetails = isSelf || activeRole === 'HR Manager' || activeRole === 'Admin';
+  const hasAccessToPrivateDetails = isSelf || activeRole === 'HR' || activeRole === 'Admin';
 
   const [currentActiveTab, setCurrentActiveTab] = useState(activeTab);
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -111,6 +112,9 @@ const Profile = ({ id, activeTab = 'about' }) => {
     { id: 'contacts', label: 'Emergency Contacts', icon: <Smartphone size={16} /> },
     { id: 'banking', label: 'Banking & Payroll', icon: <CreditCard size={16} /> }
   ];
+  if (isSelf) {
+    tabs.push({ id: 'security', label: 'Change Password', icon: <Lock size={16} /> });
+  }
 
   return (
     <div style={containerStyle} className="animate-fade-in">
@@ -118,11 +122,43 @@ const Profile = ({ id, activeTab = 'about' }) => {
       {/* Header Banner */}
       <div className="glass-card" style={headerCardStyle}>
         <div style={headerContentStyle}>
-          <div style={{
-            ...avatarBigStyle,
-            backgroundColor: emp.bgColor || 'var(--primary)'
-          }}>
-            {emp.name.split(' ').map(n => n[0]).join('')}
+          <div style={{ position: 'relative' }}>
+            <div style={{
+              ...avatarBigStyle,
+              backgroundColor: emp.bgColor || 'var(--primary)',
+              backgroundImage: emp.profilePic ? `url(${emp.profilePic})` : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}>
+              {!emp.profilePic && emp.name.split(' ').map(n => n[0]).join('')}
+            </div>
+            {isSelf && (
+              <label style={uploadAvatarLabelStyle}>
+                <Edit2 size={12} style={{ color: '#fff' }} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    
+                    try {
+                      const res = await api.post('/users/profile-image', formData);
+                      if (res.success) {
+                        addToast('Profile image updated successfully.', 'success');
+                        window.location.reload();
+                      }
+                    } catch (err) {
+                      addToast(err.message || 'Failed to upload profile image.', 'danger');
+                    }
+                  }}
+                />
+              </label>
+            )}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -477,7 +513,7 @@ const Profile = ({ id, activeTab = 'about' }) => {
                         required
                       />
                     </div>
-                    {(activeRole === 'HR Manager' || activeRole === 'Admin') && (
+                    {(activeRole === 'HR' || activeRole === 'Admin') && (
                       <div className="form-group">
                         <label className="form-label">Annual Base Salary ($ USD)</label>
                         <input
@@ -518,7 +554,7 @@ const Profile = ({ id, activeTab = 'about' }) => {
                     <span style={infoLabel}>Institution Code (IFSC)</span>
                     <span style={infoValue}>{emp.bankingInfo?.ifscCode || 'Not Declared'}</span>
                   </div>
-                  {(activeRole === 'HR Manager' || activeRole === 'Admin' || isSelf) && (
+                  {(activeRole === 'HR' || activeRole === 'Admin' || isSelf) && (
                     <div style={infoItem}>
                       <span style={infoLabel}>Annual Base Salary</span>
                       <span style={{ ...infoValue, color: 'var(--success)', fontWeight: '800' }}>
@@ -528,6 +564,54 @@ const Profile = ({ id, activeTab = 'about' }) => {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Panel 6: Change Password */}
+        {currentActiveTab === 'security' && isSelf && (
+          <div className="glass-card" style={panelCardStyle}>
+            <div style={panelHeaderStyle}>
+              <h2 style={panelTitleStyle}>Update Password</h2>
+            </div>
+            <div style={{ padding: '1.5rem', maxWidth: '400px' }}>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const currentPassword = e.target.currentPassword.value;
+                const newPassword = e.target.newPassword.value;
+                const confirmPassword = e.target.confirmPassword.value;
+                
+                if (newPassword !== confirmPassword) {
+                  addToast('New passwords do not match.', 'danger');
+                  return;
+                }
+                
+                try {
+                  const res = await api.put('/users/change-password', { currentPassword, newPassword });
+                  if (res.success) {
+                    addToast('Password updated successfully.', 'success');
+                    e.target.reset();
+                  }
+                } catch (err) {
+                  addToast(err.message || 'Failed to update password.', 'danger');
+                }
+              }}>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label">Current Password</label>
+                  <input type="password" name="currentPassword" style={{ width: '100%' }} className="form-input" required />
+                </div>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label">New Password</label>
+                  <input type="password" name="newPassword" style={{ width: '100%' }} className="form-input" required />
+                </div>
+                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                  <label className="form-label">Confirm New Password</label>
+                  <input type="password" name="confirmPassword" style={{ width: '100%' }} className="form-input" required />
+                </div>
+                <button type="submit" className="btn btn-primary">
+                  <span>Update Password</span>
+                </button>
+              </form>
             </div>
           </div>
         )}
@@ -843,6 +927,22 @@ const lockOverlay = {
   alignItems: 'center',
   gap: '12px',
   color: 'var(--text-muted)'
+};
+
+const uploadAvatarLabelStyle = {
+  position: 'absolute',
+  bottom: '-5px',
+  right: '-5px',
+  background: 'var(--primary)',
+  border: '2px solid var(--bg-card)',
+  borderRadius: '50%',
+  width: '28px',
+  height: '28px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  boxShadow: 'var(--shadow-glow)'
 };
 
 export default Profile;

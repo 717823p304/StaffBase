@@ -1,12 +1,79 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
-import { Compass, CheckCircle, Clock, AlertTriangle, ShieldCheck, UserCheck } from 'lucide-react';
+import { api } from '../../services/api';
+import { Compass, CheckCircle, Clock, AlertTriangle, ShieldCheck, UserCheck, Plus, Trash2 } from 'lucide-react';
 
 const Onboarding = () => {
-  const { employees, confirmEmployeeProbation } = useContext(AppContext);
+  const { employees, confirmEmployeeProbation, addToast } = useContext(AppContext);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddTask, setShowAddTask] = useState(null);
+  const [newTaskName, setNewTaskName] = useState('');
+
+  const fetchTasks = async () => {
+    try {
+      const res = await api.get('/onboarding');
+      if (res.success) {
+        setTasks(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load onboarding tasks', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const handleToggleTask = async (task) => {
+    const nextStatus = task.status === 'Completed' ? 'Pending' : 'Completed';
+    try {
+      const res = await api.put(`/onboarding/${task.id}`, { status: nextStatus });
+      if (res.success) {
+        fetchTasks();
+      }
+    } catch (err) {
+      addToast(err.message || 'Failed to update task', 'danger');
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    try {
+      const res = await api.delete(`/onboarding/${taskId}`);
+      if (res.success) {
+        addToast('Task deleted successfully.', 'info');
+        fetchTasks();
+      }
+    } catch (err) {
+      addToast(err.message || 'Failed to delete task', 'danger');
+    }
+  };
+
+  const handleAddTaskSubmit = async (e, empId) => {
+    e.preventDefault();
+    if (!newTaskName.trim()) return;
+
+    try {
+      const res = await api.post('/onboarding', {
+        employeeId: empId,
+        taskName: newTaskName.trim(),
+        status: 'Pending'
+      });
+      if (res.success) {
+        addToast('Onboarding task registered.', 'success');
+        setNewTaskName('');
+        setShowAddTask(null);
+        fetchTasks();
+      }
+    } catch (err) {
+      addToast(err.message || 'Failed to register onboarding task', 'danger');
+    }
+  };
 
   // Find employees who joined recently or are in probation
-  const onboardingStaff = employees.filter(e => e.status === 'On Probation' || e.status === 'Active').slice(0, 3);
+  const onboardingStaff = employees.filter(e => e.status === 'On Probation' || e.status === 'Active');
 
   return (
     <div style={containerStyle} className="animate-fade-in">
@@ -17,84 +84,127 @@ const Onboarding = () => {
       </div>
 
       {/* Renders pipeline tracking board */}
-      <div style={pipelineGrid}>
-        {onboardingStaff.map((emp) => {
-          // Calculate arbitrary onboarding progress
-          const isProbation = emp.status === 'On Probation';
-          const progress = isProbation ? 65 : 100;
-          
-          return (
-            <div key={emp.id} className="glass-card" style={cardStyle}>
-              {/* Card Header */}
-              <div style={cardHeaderRow}>
-                <div style={{
-                  ...avatarStyle,
-                  backgroundColor: emp.bgColor || 'var(--primary)'
-                }}>
-                  {emp.name.split(' ').map(n => n[0]).join('')}
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold' }}>{emp.name}</h3>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{emp.designation} • ID: {emp.id}</span>
-                </div>
-              </div>
-
-              {/* Progress metrics */}
-              <div style={{ marginTop: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '600', marginBottom: '4px' }}>
-                  <span>Induction Progress</span>
-                  <span>{progress}%</span>
-                </div>
-                <div style={progressBarContainer}>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading onboarding dashboard...</div>
+      ) : onboardingStaff.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No staff currently in onboarding or active directories.</div>
+      ) : (
+        <div style={pipelineGrid}>
+          {onboardingStaff.map((emp) => {
+            const isProbation = emp.status === 'On Probation';
+            const empTasks = tasks.filter(t => t.employeeId === emp.id);
+            const totalTasks = empTasks.length;
+            const completedTasks = empTasks.filter(t => t.status === 'Completed').length;
+            const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            
+            return (
+              <div key={emp.id} className="glass-card" style={cardStyle}>
+                {/* Card Header */}
+                <div style={cardHeaderRow}>
                   <div style={{
-                    ...progressBarFill,
-                    width: `${progress}%`,
-                    background: isProbation ? 'var(--warning)' : 'var(--success)'
-                  }}></div>
+                    ...avatarStyle,
+                    backgroundColor: emp.bgColor || 'var(--primary)'
+                  }}>
+                    {emp.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold' }}>{emp.name}</h3>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{emp.designation} • ID: {emp.id}</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Checklist list */}
-              <div style={checklistContainer}>
-                <div style={checklistItem}>
-                  <span style={isProbation ? itemActiveIcon : itemSuccessIcon}>✓</span>
-                  <span>1. IT Assets & Workspace Provisioning</span>
+                {/* Progress metrics */}
+                <div style={{ marginTop: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '600', marginBottom: '4px' }}>
+                    <span>Induction Progress</span>
+                    <span>{progress}% ({completedTasks}/{totalTasks})</span>
+                  </div>
+                  <div style={progressBarContainer}>
+                    <div style={{
+                      ...progressBarFill,
+                      width: `${progress}%`,
+                      background: progress === 100 ? 'var(--success)' : 'var(--warning)'
+                    }}></div>
+                  </div>
                 </div>
-                <div style={checklistItem}>
-                  <span style={isProbation ? itemActiveIcon : itemSuccessIcon}>✓</span>
-                  <span>2. Corporate NDA & Security Signoff</span>
-                </div>
-                <div style={checklistItem}>
-                  <span style={isProbation ? itemPendingIcon : itemSuccessIcon}>{isProbation ? '○' : '✓'}</span>
-                  <span>3. Financial Banking & Payroll Audit</span>
-                </div>
-                <div style={checklistItem}>
-                  <span style={isProbation ? itemPendingIcon : itemSuccessIcon}>{isProbation ? '○' : '✓'}</span>
-                  <span>4. Formal Orientation & Team Syncs</span>
-                </div>
-              </div>
 
-              {/* Confirmation details */}
-              <div style={confirmationSection}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  <span>Joining: **{emp.dateOfJoining}**</span>
-                  <span className={`badge badge-${isProbation ? 'warning' : 'success'}`}>{emp.status}</span>
-                </div>
-                {isProbation && (
-                  <button
-                    onClick={() => confirmEmployeeProbation(emp.id)}
-                    className="btn btn-primary"
-                    style={{ width: '100%', marginTop: '1rem', padding: '6px 12px', fontSize: '0.75rem', boxShadow: 'none' }}
-                  >
-                    Approve Confirmation
-                  </button>
-                )}
-              </div>
+                {/* Checklist list */}
+                <div style={checklistContainer}>
+                  {empTasks.length === 0 ? (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>No onboarding checklist items defined.</p>
+                  ) : (
+                    empTasks.map((task) => (
+                      <div key={task.id} style={checklistItem}>
+                        <input
+                          type="checkbox"
+                          checked={task.status === 'Completed'}
+                          onChange={() => handleToggleTask(task)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <span style={{ flex: 1, textDecoration: task.status === 'Completed' ? 'line-through' : 'none', opacity: task.status === 'Completed' ? 0.6 : 1 }}>
+                          {task.taskName}
+                        </span>
+                        <button 
+                          onClick={() => handleDeleteTask(task.id)}
+                          style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                          title="Delete Task"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))
+                  )}
 
-            </div>
-          );
-        })}
-      </div>
+                  {/* Add Task Control inline */}
+                  {showAddTask === emp.id ? (
+                    <form onSubmit={(e) => handleAddTaskSubmit(e, emp.id)} style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Task description..."
+                        value={newTaskName}
+                        onChange={(e) => setNewTaskName(e.target.value)}
+                        style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                        required
+                        autoFocus
+                      />
+                      <button type="submit" className="btn btn-primary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}>Add</button>
+                      <button type="button" onClick={() => setShowAddTask(null)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}>Cancel</button>
+                    </form>
+                  ) : (
+                    <button 
+                      onClick={() => { setShowAddTask(emp.id); setNewTaskName(''); }}
+                      className="btn btn-secondary" 
+                      style={{ marginTop: '6px', padding: '4px 8px', fontSize: '0.7rem', display: 'inline-flex', alignSelf: 'flex-start' }}
+                    >
+                      <Plus size={10} />
+                      <span>Add Checklist Item</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Confirmation details */}
+                <div style={confirmationSection}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <span>Joining: <strong>{emp.dateOfJoining}</strong></span>
+                    <span className={`badge badge-${isProbation ? 'warning' : 'success'}`}>{emp.status}</span>
+                  </div>
+                  {isProbation && (
+                    <button
+                      onClick={() => confirmEmployeeProbation(emp.id)}
+                      className="btn btn-primary"
+                      style={{ width: '100%', marginTop: '1rem', padding: '6px 12px', fontSize: '0.75rem', boxShadow: 'none' }}
+                    >
+                      Approve Confirmation
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
@@ -177,20 +287,6 @@ const checklistItem = {
   gap: '10px',
   fontSize: '0.8rem',
   color: 'var(--text-secondary)'
-};
-
-const itemSuccessIcon = {
-  fontWeight: 'bold',
-  color: 'var(--success)'
-};
-
-const itemActiveIcon = {
-  fontWeight: 'bold',
-  color: 'var(--warning)'
-};
-
-const itemPendingIcon = {
-  color: 'var(--text-muted)'
 };
 
 const confirmationSection = {

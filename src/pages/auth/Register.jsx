@@ -9,10 +9,12 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [department, setDepartment] = useState('Engineering');
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    submitRegistrationRequest({ name, email, department });
-    setSubmitted(true);
+    const success = await submitRegistrationRequest({ name, email, department });
+    if (success) {
+      setSubmitted(true);
+    }
   };
 
   return (

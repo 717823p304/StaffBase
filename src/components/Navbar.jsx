@@ -12,7 +12,8 @@ const Navbar = () => {
     employees,
     addToast,
     theme,
-    toggleTheme
+    toggleTheme,
+    loginUser
   } = useContext(AppContext);
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -27,21 +28,34 @@ const Navbar = () => {
   };
 
   // Profile quick-toggle handler
-  const handleUserSwitch = (empId) => {
+  const handleUserSwitch = async (empId) => {
     const selected = employees.find(e => e.id === empId);
     if (selected) {
-      setCurrentUser(selected);
-      setActiveRole(selected.role);
-      addToast(`Switched profile context to ${selected.name} (${selected.role})`, 'success');
-      setShowProfileSelector(false);
+      addToast(`Authenticating profile context for ${selected.name}...`, 'info');
+      const success = await loginUser(selected.email, 'password123');
+      if (success) {
+        setShowProfileSelector(false);
+      } else {
+        addToast(`Failed to switch profile to ${selected.name}`, 'danger');
+      }
     }
   };
 
   // Direct active-role toggle handler
-  const handleRoleToggle = (e) => {
+  const handleRoleToggle = async (e) => {
     const newRole = e.target.value;
-    setActiveRole(newRole);
-    addToast(`UI permissions set to ${newRole} mode`, 'info');
+    let email = 'john@employee.com';
+    if (newRole === 'Admin') {
+      email = 'sarah@admin.com';
+    } else if (newRole === 'HR') {
+      email = 'michael@hr.com';
+    }
+    
+    addToast(`Authenticating context for ${newRole} Mode...`, 'info');
+    const success = await loginUser(email, 'password123');
+    if (!success) {
+      addToast(`Failed to switch to ${newRole} Mode`, 'danger');
+    }
   };
 
   return (
@@ -73,7 +87,7 @@ const Navbar = () => {
             className="demo-switcher-select"
           >
             <option value="Admin">Admin Mode</option>
-            <option value="HR Manager">HR Manager Mode</option>
+            <option value="HR">HR Mode</option>
             <option value="Employee">Employee Mode</option>
           </select>
         </div>
