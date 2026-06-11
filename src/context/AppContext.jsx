@@ -66,6 +66,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to load employees:', err.message);
+      addToast('Failed to load employee directory.', 'danger');
     }
 
     try {
@@ -78,6 +79,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to load notifications:', err.message);
+      addToast('Failed to load notifications.', 'danger');
     }
 
     if (activeRole === 'Admin' || activeRole === 'HR') {
@@ -88,6 +90,7 @@ export const AppProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Failed to load HR requests:', err.message);
+        addToast('Failed to load HR requests.', 'danger');
       }
 
       try {
@@ -97,6 +100,7 @@ export const AppProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Failed to load HR request history:', err.message);
+        addToast('Failed to load request history.', 'danger');
       }
     }
 
@@ -115,6 +119,7 @@ export const AppProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Failed to load audit logs:', err.message);
+        addToast('Failed to load audit logs.', 'danger');
       }
 
       try {
@@ -124,6 +129,7 @@ export const AppProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Failed to load settings:', err.message);
+        addToast('Failed to load system settings.', 'danger');
       }
 
       try {
@@ -133,6 +139,7 @@ export const AppProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Failed to load departments:', err.message);
+        addToast('Failed to load departments.', 'danger');
       }
     }
   };
@@ -155,6 +162,7 @@ export const AppProvider = ({ children }) => {
             }
           }
         } catch (err) {
+          console.warn('Session validation failed, clearing stored credentials:', err.message);
           clearTokens();
           localStorage.removeItem('staffbase_session_user');
         }
@@ -215,7 +223,7 @@ export const AppProvider = ({ children }) => {
     try {
       await api.post('/auth/logout');
     } catch (err) {
-      // Ignored: cleanup locally anyway
+      console.warn('Server-side logout failed, cleaning up locally:', err.message);
     }
     clearTokens();
     localStorage.removeItem('staffbase_session_user');

@@ -19,6 +19,7 @@ const HelpSupport = () => {
       }
     } catch (err) {
       console.error('Failed to load tickets', err);
+      addToast('Failed to load support tickets.', 'danger');
     } finally {
       setLoading(false);
     }

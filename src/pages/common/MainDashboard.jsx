@@ -54,6 +54,7 @@ const MainDashboard = () => {
       }
     } catch (err) {
       console.error('Failed to load dashboard statistics', err);
+      addToast('Failed to load dashboard data. Please try refreshing.', 'danger');
     } finally {
       setLoading(false);
     }
@@ -76,7 +77,9 @@ const MainDashboard = () => {
         if (summaryRes.success) {
           setDashboardSummary(summaryRes.data);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('Failed to refresh dashboard data after verification:', e.message);
+      }
     }
   };
 

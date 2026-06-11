@@ -12,10 +12,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import java.io.ByteArrayOutputStream;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/reports")
 public class ReportsController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReportsController.class);
 
     private final EmployeeRepository employeeRepository;
 
@@ -101,7 +105,9 @@ public class ReportsController {
             
             return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            logger.error("Failed to export PDF report: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(("Failed to generate PDF report: " + e.getMessage()).getBytes());
         }
     }
 
@@ -125,7 +131,9 @@ public class ReportsController {
             
             return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            logger.error("Failed to export Excel report: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(("Failed to generate Excel report: " + e.getMessage()).getBytes());
         }
     }
 }

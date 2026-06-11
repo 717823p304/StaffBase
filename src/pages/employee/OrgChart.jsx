@@ -4,7 +4,7 @@ import { api } from '../../services/api';
 import { Network, ArrowRight, GitFork } from 'lucide-react';
 
 const OrgChart = () => {
-  const { employees } = useContext(AppContext);
+  const { employees, addToast } = useContext(AppContext);
   const [hierarchy, setHierarchy] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,6 +17,7 @@ const OrgChart = () => {
         }
       } catch (err) {
         console.error('Failed to load org chart hierarchy', err);
+        addToast('Failed to load organization hierarchy.', 'danger');
       } finally {
         setLoading(false);
       }
