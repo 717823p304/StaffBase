@@ -2,6 +2,8 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { Compass, CheckCircle, Clock, AlertTriangle, ShieldCheck, UserCheck, Plus, Trash2 } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle } from '../../styles/shared';
 
 const Onboarding = () => {
   const { employees, confirmEmployeeProbation, addToast } = useContext(AppContext);
@@ -77,11 +79,10 @@ const Onboarding = () => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div>
-        <h1 style={titleStyle}>Onboarding & Probation Control</h1>
-        <p style={subtitleStyle}>Track equipment provisioning, systems induction checklists, and probation milestones for new hires.</p>
-      </div>
+      <PageHeader
+        title="Onboarding & Probation Control"
+        subtitle="Track equipment provisioning, systems induction checklists, and probation milestones for new hires."
+      />
 
       {/* Renders pipeline tracking board */}
       {loading ? (
@@ -210,22 +211,6 @@ const Onboarding = () => {
 };
 
 // Styling Variables
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
-};
 
 const pipelineGrid = {
   display: 'grid',

@@ -2,6 +2,8 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { Network, ArrowRight, GitFork } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle } from '../../styles/shared';
 
 const OrgChart = () => {
   const { employees } = useContext(AppContext);
@@ -64,13 +66,10 @@ const OrgChart = () => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div style={headerStyle}>
-        <div>
-          <h1 style={titleStyle}>Organization Hierarchy</h1>
-          <p style={subtitleStyle}>Visualize team structures, leadership connections, and reporting coordinates.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Organization Hierarchy"
+        subtitle="Visualize team structures, leadership connections, and reporting coordinates."
+      />
 
       {/* Visual Chart Canvas */}
       {loading ? (
@@ -131,28 +130,6 @@ const OrgChart = () => {
 };
 
 // Styling definitions
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
-};
 
 const canvasStyle = {
   padding: '3rem 1.5rem',

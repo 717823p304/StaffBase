@@ -1,17 +1,18 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../../context/AppContext';
-import { Database, Clock, Calendar } from 'lucide-react';
+import { Clock } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle } from '../../styles/shared';
 
 const AuditLogs = () => {
   const { activityLogs } = useContext(AppContext);
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div>
-        <h1 style={titleStyle}>Enterprise Audit Logs</h1>
-        <p style={subtitleStyle}>Inspect corporate operations events, directory metadata writes, and security credentials updates.</p>
-      </div>
+      <PageHeader
+        title="Enterprise Audit Logs"
+        subtitle="Inspect corporate operations events, directory metadata writes, and security credentials updates."
+      />
 
       {/* Renders table list */}
       <div className="glass-card table-container">
@@ -55,24 +56,6 @@ const AuditLogs = () => {
       </div>
     </div>
   );
-};
-
-// Styling Variables
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
 };
 
 export default AuditLogs;

@@ -1,6 +1,8 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../../context/AppContext';
-import { Search, Eye, ArrowRight } from 'lucide-react';
+import { Search, Eye } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle } from '../../styles/shared';
 
 const SearchResults = ({ query = '' }) => {
   const { employees } = useContext(AppContext);
@@ -14,11 +16,10 @@ const SearchResults = ({ query = '' }) => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div>
-        <h1 style={titleStyle}>Search Results</h1>
-        <p style={subtitleStyle}>Found {matched.length} profiles matching keyword query "**{query}**"</p>
-      </div>
+      <PageHeader
+        title="Search Results"
+        subtitle={`Found ${matched.length} profiles matching keyword query "**${query}**"`}
+      />
 
       {/* Renders lists */}
       {matched.length === 0 ? (
@@ -53,24 +54,6 @@ const SearchResults = ({ query = '' }) => {
       )}
     </div>
   );
-};
-
-// Styling Variables
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
 };
 
 const emptyCard = {

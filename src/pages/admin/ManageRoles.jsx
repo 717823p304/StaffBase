@@ -2,6 +2,8 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { ShieldCheck, ShieldAlert, Key, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle, gridStyle, panelCardStyle, panelHeaderStyle, panelTitleStyle } from '../../styles/shared';
 
 const ManageRoles = () => {
   const { addToast } = useContext(AppContext);
@@ -89,12 +91,10 @@ const ManageRoles = () => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div style={headerStyle}>
-        <div>
-          <h1 style={titleStyle}>Clearance & Roles Controller</h1>
-          <p style={subtitleStyle}>Inspect and customize corporate clearance levels, permission matrices, and security privileges.</p>
-        </div>
+      <PageHeader
+        title="Clearance & Roles Controller"
+        subtitle="Inspect and customize corporate clearance levels, permission matrices, and security privileges."
+      >
         <button 
           onClick={handleResetDefaults} 
           className="btn btn-secondary"
@@ -103,7 +103,7 @@ const ManageRoles = () => {
           <RotateCcw size={14} />
           <span>Reload Settings</span>
         </button>
-      </div>
+      </PageHeader>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
@@ -120,17 +120,17 @@ const ManageRoles = () => {
                 key={role.id} 
                 className="glass-card" 
                 style={{
-                  ...panelCard,
+                  ...panelCardStyle,
                   borderColor: isUnlocked ? (role.color || 'var(--primary)') : 'var(--border-color)',
                   boxShadow: isUnlocked ? `0 0 15px rgba(255, 255, 255, 0.05)` : 'none',
                   transform: isUnlocked ? 'scale(1.01)' : 'scale(1)',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
               >
-                <div style={panelHeader}>
+                <div style={panelHeaderStyle}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <Key size={18} style={{ color: role.color || 'var(--primary)' }} />
-                    <h3 style={panelTitle}>{role.name} Level</h3>
+                    <h3 style={panelTitleStyle}>{role.name} Level</h3>
                   </div>
                   {isUnlocked && <span style={{ ...editingLabel, color: role.color }}>Editable</span>}
                 </div>
@@ -232,56 +232,6 @@ const ManageRoles = () => {
 };
 
 // Styling definitions
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  flexWrap: 'wrap',
-  gap: '1rem'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
-};
-
-const gridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-  gap: '1.5rem'
-};
-
-const panelCard = {
-  border: '1px solid var(--border-color)',
-  display: 'flex',
-  flexDirection: 'column'
-};
-
-const panelHeader = {
-  padding: '1rem 1.25rem',
-  borderBottom: '1px solid var(--border-color)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-};
-
-const panelTitle = {
-  fontSize: '0.95rem',
-  fontWeight: '700'
-};
-
 const editingLabel = {
   fontSize: '0.65rem',
   fontWeight: 'bold',

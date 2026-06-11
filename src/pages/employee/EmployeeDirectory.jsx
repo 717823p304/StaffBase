@@ -1,6 +1,8 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { Search, Grid, List, Mail, Eye, Calendar, MapPin, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle } from '../../styles/shared';
 
 const EmployeeDirectory = () => {
   const { employees, departments } = useContext(AppContext);
@@ -50,12 +52,10 @@ const EmployeeDirectory = () => {
   return (
     <div style={containerStyle} className="animate-fade-in">
       
-      {/* Title Header */}
-      <div style={headerStyle}>
-        <div>
-          <h1 style={titleStyle}>Employee Directory</h1>
-          <p style={subtitleStyle}>Browse and search profiles, contact details, and department registries.</p>
-        </div>
+      <PageHeader
+        title="Employee Directory"
+        subtitle="Browse and search profiles, contact details, and department registries."
+      >
         <div style={viewControls}>
           <button
             onClick={() => setViewMode('grid')}
@@ -72,7 +72,7 @@ const EmployeeDirectory = () => {
             <List size={16} />
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Search & Filter Toolbar */}
       <div className="glass-card" style={toolbarCardStyle}>
@@ -291,28 +291,6 @@ const EmployeeDirectory = () => {
 };
 
 // Styling Variables
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
-};
 
 const viewControls = {
   display: 'flex',

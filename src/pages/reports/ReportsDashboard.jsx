@@ -1,6 +1,9 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { Download, Users, Gauge, Percent, BarChart2, CheckCircle2 } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle } from '../../styles/shared';
+import { downloadFile } from '../../utils/downloadFile';
 
 const ReportsDashboard = () => {
   const { employees, addToast } = useContext(AppContext);
@@ -56,22 +59,7 @@ const ReportsDashboard = () => {
 
   const handleExportExcel = async () => {
     try {
-      const accessToken = localStorage.getItem('staffbase_access_token');
-      const response = await fetch('http://localhost:5000/api/reports/export/excel', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      if (!response.ok) throw new Error('Export failed');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'StaffBase_Directory_Database.csv';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      await downloadFile('/reports/export/excel', 'StaffBase_Directory_Database.csv');
       addToast('CSV export downloaded successfully.', 'success');
     } catch (err) {
       addToast('Failed to export CSV: ' + err.message, 'danger');
@@ -80,22 +68,7 @@ const ReportsDashboard = () => {
 
   const handleExportPdf = async () => {
     try {
-      const accessToken = localStorage.getItem('staffbase_access_token');
-      const response = await fetch('http://localhost:5000/api/reports/export/pdf', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      if (!response.ok) throw new Error('Export failed');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'StaffBase_Directory_Report.pdf';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      await downloadFile('/reports/export/pdf', 'StaffBase_Directory_Report.pdf');
       addToast('PDF report downloaded successfully.', 'success');
     } catch (err) {
       addToast('Failed to export PDF: ' + err.message, 'danger');
@@ -104,12 +77,10 @@ const ReportsDashboard = () => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div style={headerStyle}>
-        <div>
-          <h1 style={titleStyle}>Operational Reports & Analytics</h1>
-          <p style={subtitleStyle}>Simplified key performance indicators: gender diversity distribution, staff headcount, and operational efficiencies.</p>
-        </div>
+      <PageHeader
+        title="Operational Reports & Analytics"
+        subtitle="Simplified key performance indicators: gender diversity distribution, staff headcount, and operational efficiencies."
+      >
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={handleExportExcel} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Download size={14} />
@@ -120,7 +91,7 @@ const ReportsDashboard = () => {
             <span>Export PDF Report</span>
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Main Simplified Layout Grid */}
       <div style={reportsGrid}>
@@ -296,34 +267,7 @@ const ReportsDashboard = () => {
 };
 
 // Styling specifications
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem',
-  paddingBottom: '2rem'
-};
 
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  flexWrap: 'wrap',
-  gap: '1rem'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)',
-  margin: 0
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)',
-  marginTop: '4px',
-  margin: 0
-};
 
 const reportsGrid = {
   display: 'grid',
