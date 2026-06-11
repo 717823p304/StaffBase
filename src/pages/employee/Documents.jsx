@@ -2,6 +2,9 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { UploadCloud, FileText, AlertTriangle, CheckCircle2, ShieldCheck, Download, Trash2, Calendar } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle } from '../../styles/shared';
+import { downloadFile } from '../../utils/downloadFile';
 
 const Documents = () => {
   const { currentUser, employees, uploadEmployeeDocument, addToast } = useContext(AppContext);
@@ -93,22 +96,7 @@ const Documents = () => {
 
   const handleDownload = async (doc) => {
     try {
-      const accessToken = localStorage.getItem('staffbase_access_token');
-      const response = await fetch(`http://localhost:5000/api/documents/${doc.id}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      if (!response.ok) throw new Error('Download failed');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${doc.name}.${doc.type.toLowerCase()}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      await downloadFile(`/documents/${doc.id}`, `${doc.name}.${doc.type.toLowerCase()}`);
       addToast(`Downloaded: ${doc.name}`, 'success');
     } catch (err) {
       addToast('Failed to download document: ' + err.message, 'danger');
@@ -155,11 +143,10 @@ const Documents = () => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div>
-        <h1 style={titleStyle}>Document Vault & Management</h1>
-        <p style={subtitleStyle}>Securely upload, store, and verify employment forms, certifications, and identification records.</p>
-      </div>
+      <PageHeader
+        title="Document Vault & Management"
+        subtitle="Securely upload, store, and verify employment forms, certifications, and identification records."
+      />
 
       {/* Warnings & Expirations */}
       {expiringDocs.length > 0 && (
@@ -341,22 +328,6 @@ const Documents = () => {
 };
 
 // Styling Variables
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
-};
 
 const alertCardStyle = {
   padding: '1rem 1.25rem',

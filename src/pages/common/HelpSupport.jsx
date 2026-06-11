@@ -2,6 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { HelpCircle, BookOpen, Mail, Plus, CheckCircle, Clock, User, MessageSquare } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle, gridStyle, panelCardStyle, panelHeaderStyle, panelTitleStyle } from '../../styles/shared';
 
 const HelpSupport = () => {
   const { addToast, activeRole } = useContext(AppContext);
@@ -62,21 +64,20 @@ const HelpSupport = () => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div>
-        <h1 style={titleStyle}>Help & Support Desk</h1>
-        <p style={subtitleStyle}>Submit request tickets, review corporate documentation, or contact operations administrators.</p>
-      </div>
+      <PageHeader
+        title="Help & Support Desk"
+        subtitle="Submit request tickets, review corporate documentation, or contact operations administrators."
+      />
 
       {/* Grid splits */}
-      <div style={gridStyle}>
+      <div style={supportGridStyle}>
         
         {/* Left: Create Ticket Form */}
-        <div className="glass-card" style={panelCard}>
-          <div style={panelHeader}>
+        <div className="glass-card" style={panelCardStyle}>
+          <div style={panelHeaderStyle}>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <HelpCircle size={18} style={{ color: 'var(--primary)' }} />
-              <h3 style={panelTitle}>Create Support Ticket</h3>
+              <h3 style={panelTitleStyle}>Create Support Ticket</h3>
             </div>
           </div>
           <div style={{ padding: '1.5rem' }}>
@@ -131,11 +132,11 @@ const HelpSupport = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Tickets Vault */}
-          <div className="glass-card" style={panelCard}>
-            <div style={panelHeader}>
+          <div className="glass-card" style={panelCardStyle}>
+            <div style={panelHeaderStyle}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <MessageSquare size={18} style={{ color: 'var(--secondary)' }} />
-                <h3 style={panelTitle}>{activeRole === 'Admin' || activeRole === 'HR' ? 'All Active Support Tickets' : 'Your Support Tickets'}</h3>
+                <h3 style={panelTitleStyle}>{activeRole === 'Admin' || activeRole === 'HR' ? 'All Active Support Tickets' : 'Your Support Tickets'}</h3>
               </div>
               <span className="badge badge-info">{tickets.length} Total</span>
             </div>
@@ -184,11 +185,11 @@ const HelpSupport = () => {
           </div>
 
           {/* Quick Manual */}
-          <div className="glass-card" style={panelCard}>
-            <div style={panelHeader}>
+          <div className="glass-card" style={panelCardStyle}>
+            <div style={panelHeaderStyle}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <BookOpen size={18} style={{ color: 'var(--primary)' }} />
-                <h3 style={panelTitle}>Directory User Manual</h3>
+                <h3 style={panelTitleStyle}>Directory User Manual</h3>
               </div>
             </div>
             <div style={{ padding: '1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -206,46 +207,10 @@ const HelpSupport = () => {
 };
 
 // Styling Variables
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
-};
-
-const gridStyle = {
+const supportGridStyle = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
   gap: '1.5rem'
-};
-
-const panelCard = {
-  border: '1px solid var(--border-color)',
-  display: 'flex',
-  flexDirection: 'column'
-};
-
-const panelHeader = {
-  padding: '1rem 1.25rem',
-  borderBottom: '1px solid var(--border-color)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-};
-
-const panelTitle = {
-  fontSize: '0.95rem',
-  fontWeight: '700'
 };
 
 const ticketCard = {

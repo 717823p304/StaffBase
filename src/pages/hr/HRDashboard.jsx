@@ -1,6 +1,8 @@
 import React, { useContext } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { Briefcase, Sliders, AlertCircle, Clock, UserPlus, Eye, Users, UserCheck, X } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle, gridStyle, panelCardStyle, panelHeaderStyle, panelTitleStyle, emptyTextStyle, listStyle, listItemStyle, itemNameStyle, itemSubStyle } from '../../styles/shared';
 
 const HRDashboard = () => {
   const { 
@@ -19,17 +21,15 @@ const HRDashboard = () => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div style={headerStyle}>
-        <div>
-          <h1 style={titleStyle}>HR Operations Console</h1>
-          <p style={subtitleStyle}>Oversee staffing segments, confirmation workflows, probation timelines, and compliance reviews.</p>
-        </div>
+      <PageHeader
+        title="HR Operations Console"
+        subtitle="Oversee staffing segments, confirmation workflows, probation timelines, and compliance reviews."
+      >
         <a href="#/hr/add-employee" className="btn btn-primary">
           <UserPlus size={16} />
           <span>Add Employee Wizard</span>
         </a>
-      </div>
+      </PageHeader>
 
       {/* Overview Grid */}
       <div style={gridStyle}>
@@ -230,85 +230,6 @@ const HRDashboard = () => {
 };
 
 // Styling Variables
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
-};
-
-const gridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-  gap: '1.5rem'
-};
-
-const panelCardStyle = {
-  border: '1px solid var(--border-color)'
-};
-
-const panelHeaderStyle = {
-  padding: '1rem 1.25rem',
-  borderBottom: '1px solid var(--border-color)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-};
-
-const panelTitleStyle = {
-  fontSize: '0.9rem',
-  fontWeight: '700'
-};
-
-const emptyTextStyle = {
-  fontSize: '0.85rem',
-  color: 'var(--text-muted)',
-  textAlign: 'center',
-  padding: '2rem 1rem'
-};
-
-const listStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '10px'
-};
-
-const listItemStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '10px',
-  background: 'rgba(255, 255, 255, 0.01)',
-  border: '1px solid var(--border-color)',
-  borderRadius: '8px'
-};
-
-const itemNameStyle = {
-  fontSize: '0.85rem',
-  fontWeight: '700'
-};
-
-const itemSubStyle = {
-  fontSize: '0.75rem',
-  color: 'var(--text-secondary)',
-  marginTop: '1px'
-};
 
 const warningItemStyle = {
   display: 'flex',

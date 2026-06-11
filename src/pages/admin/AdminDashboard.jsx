@@ -2,6 +2,8 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { Sliders, Plus, Trash2, ShieldAlert, Building2, Save, User, Users, ShieldCheck, ToggleLeft, ToggleRight, UserPlus, Key } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle, panelCardStyle, panelHeaderStyle, panelTitleStyle, formColumnStyle } from '../../styles/shared';
 
 const AdminDashboard = () => {
   const {
@@ -143,11 +145,10 @@ const AdminDashboard = () => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div>
-        <h1 style={titleStyle}>System Administration Console</h1>
-        <p style={subtitleStyle}>Oversee system-wide preferences, active security directory parameters, and department catalogs.</p>
-      </div>
+      <PageHeader
+        title="System Administration Console"
+        subtitle="Oversee system-wide preferences, active security directory parameters, and department catalogs."
+      />
 
       {/* Tabs Switcher */}
       <div style={tabsRowStyle}>
@@ -183,11 +184,11 @@ const AdminDashboard = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             {/* Department List Panel */}
-            <div className="glass-card" style={panelStyle}>
-              <div style={panelHeader}>
+            <div className="glass-card" style={panelCardStyle}>
+              <div style={panelHeaderStyle}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <Building2 size={18} style={{ color: 'var(--primary)' }} />
-                  <h3 style={panelTitle}>Corporate Department Catalog</h3>
+                  <h3 style={panelTitleStyle}>Corporate Department Catalog</h3>
                 </div>
               </div>
               <div style={{ padding: '1.25rem' }}>
@@ -228,12 +229,12 @@ const AdminDashboard = () => {
             </div>
 
             {/* Add Department Form */}
-            <div className="glass-card" style={panelStyle}>
-              <div style={panelHeader}>
-                <h3 style={panelTitle}>Add New Department</h3>
+            <div className="glass-card" style={panelCardStyle}>
+              <div style={panelHeaderStyle}>
+                <h3 style={panelTitleStyle}>Add New Department</h3>
               </div>
               <div style={{ padding: '1.25rem' }}>
-                <form onSubmit={handleAddDeptSubmit} style={formStyle}>
+                <form onSubmit={handleAddDeptSubmit} style={formColumnStyle}>
                   <div className="form-group">
                     <label className="form-label">Department Title</label>
                     <input
@@ -278,11 +279,11 @@ const AdminDashboard = () => {
           </div>
 
           {/* Right: Security & Configurations */}
-          <div className="glass-card" style={panelStyle}>
-            <div style={panelHeader}>
+          <div className="glass-card" style={panelCardStyle}>
+            <div style={panelHeaderStyle}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <Sliders size={18} style={{ color: 'var(--secondary)' }} />
-                <h3 style={panelTitle}>Directory Global Settings</h3>
+                <h3 style={panelTitleStyle}>Directory Global Settings</h3>
               </div>
             </div>
             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -343,11 +344,11 @@ const AdminDashboard = () => {
         <div style={workspaceSplit}>
           
           {/* Left: Accounts List */}
-          <div className="glass-card" style={panelStyle}>
-            <div style={panelHeader}>
+          <div className="glass-card" style={panelCardStyle}>
+            <div style={panelHeaderStyle}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <Users size={18} style={{ color: 'var(--primary)' }} />
-                <h3 style={panelTitle}>Directory User Accounts</h3>
+                <h3 style={panelTitleStyle}>Directory User Accounts</h3>
               </div>
               <span className="badge badge-info">{users.length} Active Accounts</span>
             </div>
@@ -420,15 +421,15 @@ const AdminDashboard = () => {
           </div>
 
           {/* Right: Add New User Form */}
-          <div className="glass-card" style={panelStyle}>
-            <div style={panelHeader}>
+          <div className="glass-card" style={panelCardStyle}>
+            <div style={panelHeaderStyle}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <UserPlus size={18} style={{ color: 'var(--success)' }} />
-                <h3 style={panelTitle}>Create User Profile</h3>
+                <h3 style={panelTitleStyle}>Create User Profile</h3>
               </div>
             </div>
             <div style={{ padding: '1.25rem' }}>
-              <form onSubmit={handleCreateUserSubmit} style={formStyle}>
+              <form onSubmit={handleCreateUserSubmit} style={formColumnStyle}>
                 
                 <div className="form-group">
                   <label className="form-label">Full Name</label>
@@ -516,44 +517,10 @@ const AdminDashboard = () => {
 };
 
 // Styling Variables
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
-};
-
 const workspaceSplit = {
   display: 'grid',
   gridTemplateColumns: '1.2fr 1fr',
   gap: '1.5rem'
-};
-
-const panelStyle = {
-  border: '1px solid var(--border-color)'
-};
-
-const panelHeader = {
-  padding: '1rem 1.25rem',
-  borderBottom: '1px solid var(--border-color)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center'
-};
-
-const panelTitle = {
-  fontSize: '0.95rem',
-  fontWeight: '700'
 };
 
 const actionBtnStyle = {
@@ -572,12 +539,6 @@ const actionBtnStyle = {
     background: '#ef4444',
     color: '#ffffff'
   }
-};
-
-const formStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '12px'
 };
 
 const warningNotice = {

@@ -1,6 +1,8 @@
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { ArrowLeft, ArrowRight, UserPlus, CheckCircle, ShieldCheck } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
+import { containerStyle, formGridStyle } from '../../styles/shared';
 
 const AddEmployee = () => {
   const { addEmployee, departments, designations } = useContext(AppContext);
@@ -67,11 +69,10 @@ const AddEmployee = () => {
 
   return (
     <div style={containerStyle} className="animate-fade-in">
-      {/* Title Header */}
-      <div>
-        <h1 style={titleStyle}>Add Employee Wizard</h1>
-        <p style={subtitleStyle}>Register newly hired personnel into the active corporate payroll directory.</p>
-      </div>
+      <PageHeader
+        title="Add Employee Wizard"
+        subtitle="Register newly hired personnel into the active corporate payroll directory."
+      />
 
       {/* Step Indicators */}
       <div className="glass-card" style={stepBarCard}>
@@ -139,7 +140,7 @@ const AddEmployee = () => {
               <h2 style={sectionTitleStyle}>2. Position & Segment Alignments</h2>
               <p style={sectionSubStyle}>Define department structures, designations, and permissions.</p>
 
-              <div style={formGrid}>
+              <div style={formGridStyle}>
                 <div className="form-group">
                   <label className="form-label">Department Segment</label>
                   <select
@@ -199,7 +200,7 @@ const AddEmployee = () => {
               <h2 style={sectionTitleStyle}>3. Banking coordinates & Compensation</h2>
               <p style={sectionSubStyle}>Define starting compensations and deposit routes.</p>
 
-              <div style={formGrid}>
+              <div style={formGridStyle}>
                 <div className="form-group">
                   <label className="form-label">Annual Base Salary ($ USD)</label>
                   <input
@@ -331,22 +332,6 @@ const AddEmployee = () => {
 };
 
 // Styling definitions
-const containerStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem'
-};
-
-const titleStyle = {
-  fontSize: '1.5rem',
-  fontWeight: '800',
-  color: 'var(--text-primary)'
-};
-
-const subtitleStyle = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)'
-};
 
 const stepBarCard = {
   padding: '1.25rem 2rem',
@@ -418,12 +403,6 @@ const sectionSubStyle = {
   fontSize: '0.8rem',
   color: 'var(--text-secondary)',
   marginBottom: '1.5rem'
-};
-
-const formGrid = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: '1rem'
 };
 
 const navControlsRow = {
