@@ -25,10 +25,14 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.List;
 import java.util.ArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/documents")
 public class DocumentController {
+
+    private static final Logger logger = LoggerFactory.getLogger(DocumentController.class);
 
     private final EmployeeDocumentRepository documentRepository;
     private final DocumentAccessLogRepository accessLogRepository;
@@ -103,7 +107,7 @@ public class DocumentController {
                 String email = SecurityContextHolder.getContext().getAuthentication().getName();
                 accessLogRepository.save(new DocumentAccessLog(savedDoc.getId(), email, "UPLOAD"));
             } catch (Exception ex) {
-                // Ignore
+                logger.warn("Failed to log UPLOAD access for document {}: {}", savedDoc.getId(), ex.getMessage());
             }
 
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -137,7 +141,7 @@ public class DocumentController {
             String email = SecurityContextHolder.getContext().getAuthentication().getName();
             accessLogRepository.save(new DocumentAccessLog(docId, email, "VERIFY"));
         } catch (Exception ex) {
-            // Ignore
+            logger.warn("Failed to log VERIFY access for document {}: {}", docId, ex.getMessage());
         }
 
         return ResponseEntity.ok(new ApiResponse<>(true, "Document status updated", saved));
@@ -188,7 +192,7 @@ public class DocumentController {
         try {
             accessLogRepository.save(new DocumentAccessLog(id, email, "DOWNLOAD"));
         } catch (Exception ex) {
-            // Ignore
+            logger.warn("Failed to log DOWNLOAD access for document {}: {}", id, ex.getMessage());
         }
         
         // Return file
@@ -235,7 +239,7 @@ public class DocumentController {
             Path filePath = Paths.get(uploadDir).toAbsolutePath().resolve(filename);
             Files.deleteIfExists(filePath);
         } catch (Exception e) {
-            // Ignore
+            logger.warn("Failed to delete file from disk for document {}: {}", id, e.getMessage());
         }
         
         documentRepository.delete(doc);

@@ -18,6 +18,7 @@ const Onboarding = () => {
       }
     } catch (err) {
       console.error('Failed to load onboarding tasks', err);
+      addToast('Failed to load onboarding tasks.', 'danger');
     } finally {
       setLoading(false);
     }

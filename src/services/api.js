@@ -84,7 +84,7 @@ const apiFetch = async (endpoint, options = {}) => {
   try {
     result = await response.json();
   } catch (err) {
-    // Default to empty object if response is not valid JSON
+    console.warn(`Failed to parse JSON response from ${endpoint} (status ${response.status}):`, err.message);
   }
 
   if (!response.ok) {

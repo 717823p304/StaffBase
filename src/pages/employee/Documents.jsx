@@ -28,6 +28,7 @@ const Documents = () => {
       }
     } catch (err) {
       console.error('Failed to load documents', err);
+      addToast('Failed to load documents. Please try refreshing.', 'danger');
     } finally {
       setLoadingDocs(false);
     }
