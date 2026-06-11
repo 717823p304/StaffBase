@@ -185,13 +185,12 @@ public class AuthController {
             targetRole = "Employee";
         }
 
-        // Hashing password temporarily
         request.setEmail(email);
         request.setRole(targetRole);
         request.setStatus("PENDING");
         String plainPassword = request.getPassword();
-        if (plainPassword == null || plainPassword.trim().isEmpty()) {
-            plainPassword = "password123";
+        if (plainPassword == null || plainPassword.trim().length() < 8) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Password must be at least 8 characters long"));
         }
         request.setPassword(passwordEncoder.encode(plainPassword));
         registrationRequestRepository.save(request);
@@ -218,41 +217,29 @@ public class AuthController {
         String email = "";
         String name = "";
         
-        // 1. Verify Google Token (Supports both Mock Token and Google tokeninfo endpoint)
-        if (idToken.startsWith("mock_google_token_")) {
-            // Mock token format: mock_google_token_<email>_<name>
-            String[] parts = idToken.split("_");
-            if (parts.length >= 5) {
-                email = parts[3].trim().toLowerCase();
-                name = parts[4].trim();
-            } else {
-                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid mock Google token format"));
+        // Verify Google Token via Google tokeninfo endpoint
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create("https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken))
+                    .GET()
+                    .build();
+            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            if (httpResponse.statusCode() != 200) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, "Google OAuth verification failed"));
             }
-        } else {
-            // Real verification: call https://oauth2.googleapis.com/tokeninfo?id_token=...
-            try {
-                HttpClient client = HttpClient.newHttpClient();
-                HttpRequest httpRequest = HttpRequest.newBuilder()
-                        .uri(URI.create("https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken))
-                        .GET()
-                        .build();
-                HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-                if (httpResponse.statusCode() != 200) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .body(new ApiResponse<>(false, "Google OAuth verification failed"));
-                }
-                
-                ObjectMapper mapper = new ObjectMapper();
-                Map<String, Object> payload = mapper.readValue(httpResponse.body(), Map.class);
-                if (!payload.containsKey("email")) {
-                    return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Email not found in Google token payload"));
-                }
-                email = ((String) payload.get("email")).trim().toLowerCase();
-                name = payload.containsKey("name") ? (String) payload.get("name") : email.split("@")[0];
-            } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(new ApiResponse<>(false, "Error verifying Google token: " + e.getMessage()));
+            
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> payload = mapper.readValue(httpResponse.body(), Map.class);
+            if (!payload.containsKey("email")) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Email not found in Google token payload"));
             }
+            email = ((String) payload.get("email")).trim().toLowerCase();
+            name = payload.containsKey("name") ? (String) payload.get("name") : email.split("@")[0];
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, "Error verifying Google token: " + e.getMessage()));
         }
 
         String ipAddress = request.getRemoteAddr();
@@ -378,6 +365,9 @@ public class AuthController {
 
         if (token == null || token.trim().isEmpty() || newPassword == null || newPassword.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Token and newPassword are required"));
+        }
+        if (newPassword.trim().length() < 8) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Password must be at least 8 characters long"));
         }
 
         Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository.findByToken(token.trim());

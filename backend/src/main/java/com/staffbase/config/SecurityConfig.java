@@ -56,7 +56,7 @@ public class SecurityConfig {
                     "/auth/forgot-password",
                     "/auth/reset-password"
                 ).permitAll()
-                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/uploads/**").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

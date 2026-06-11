@@ -144,6 +144,9 @@ public class UserProfileController {
         if (currentPassword == null || newPassword == null) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Current password and new password are required"));
         }
+        if (newPassword.trim().length() < 8) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "New password must be at least 8 characters long"));
+        }
 
         String email = getCurrentUserEmail();
         Optional<User> userOpt = userRepository.findByEmail(email);
@@ -179,8 +182,14 @@ public class UserProfileController {
 
         try {
             String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+            if (originalFileName.contains("..") || originalFileName.contains("/") || originalFileName.contains("\\")) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid filename"));
+            }
             String savedFileName = System.currentTimeMillis() + "_" + originalFileName;
-            Path targetLocation = Paths.get(uploadDir).toAbsolutePath().resolve(savedFileName);
+            Path targetLocation = Paths.get(uploadDir).toAbsolutePath().resolve(savedFileName).normalize();
+            if (!targetLocation.startsWith(Paths.get(uploadDir).toAbsolutePath())) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Invalid file path"));
+            }
             
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 

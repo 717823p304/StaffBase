@@ -6,6 +6,7 @@ import com.staffbase.repositories.jpa.*;
 import com.staffbase.repositories.mongo.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
@@ -78,6 +79,7 @@ public class EmployeeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('Admin', 'HR')")
     public ResponseEntity<?> createEmployee(@RequestBody Employee employeeData) {
         // Generate dynamic employee ID
         long count = employeeRepository.count();
@@ -93,8 +95,8 @@ public class EmployeeController {
 
         Employee saved = employeeRepository.save(employeeData);
 
-        // Provision User Account in MySQL (default password: password123)
-        String defaultHashedPassword = passwordEncoder.encode("password123");
+        // Provision User Account in MySQL with a random initial password
+        String defaultHashedPassword = passwordEncoder.encode(java.util.UUID.randomUUID().toString());
         User newUser = new User(employeeData.getEmail(), defaultHashedPassword, empId);
         
         // Find default role (usually Employee)
@@ -109,6 +111,7 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('Admin', 'HR')")
     public ResponseEntity<?> updateEmployee(@PathVariable String id, @RequestBody Map<String, Object> updates) {
         Optional<Employee> empOpt = employeeRepository.findById(id);
         if (empOpt.isEmpty()) {
@@ -162,6 +165,7 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('Admin', 'HR')")
     public ResponseEntity<?> deleteEmployee(@PathVariable String id) {
         Optional<Employee> empOpt = employeeRepository.findById(id);
         if (empOpt.isEmpty()) {
